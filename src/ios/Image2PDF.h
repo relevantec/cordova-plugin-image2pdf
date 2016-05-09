@@ -31,6 +31,8 @@ typedef int Image2PDFError;
 
 - (void)convert:(CDVInvokedUrlCommand *)command;
 
+- (void)convertArray:(CDVInvokedUrlCommand *)command;
+
 + (void) convertTestImage;
 
 @end

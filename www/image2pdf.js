@@ -48,6 +48,23 @@ module.exports = (function () {
             var execSuccess = onSuccess.bind(null, success);
             var execError = onError.bind(null, error);
             exec(execSuccess, execError, "Image2PDF", "convert", [imageFilePath, pdfFilePath]);
+        },
+
+        /**
+         *  Converts the image array, containing file paths, to a PDF file.
+         *
+         * @param {Array} array, containing source images' file paths; if relative then "<appBundle>/www" is prepended
+         * @param {String} target PDF file path; if relative then "~/tmp" is prepended
+         * @param {Function} success callback is called without parameters
+         * @param {Function} onError callback is called with error code (Int)
+         *
+         *  Returns (through Callback): OK: -, ERROR: Error Code (Int)
+         */
+        convertArray: function (imageFilesPaths, pdfFilePath, success, error) {
+            argscheck.checkArgs('AsFF', 'urlChecker.check', arguments);
+            var execSuccess = onSuccess.bind(null, success);
+            var execError = onError.bind(null, error);
+            exec(execSuccess, execError, "Image2PDF", "convertArray", [imageFilesPaths, pdfFilePath]);
         }
     };
 

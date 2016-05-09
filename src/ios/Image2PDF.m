@@ -80,6 +80,42 @@
 }
 
 /**
+ *	Converts the image array, containing file paths, to a PDF file.
+ *
+ *  Parameter: [0] source image file path (String); if relative then "<appBundle>/www" is prepended
+ *  Parameter: [1] target PDF file path (String); if relative then "~/tmp" is prepended
+ *
+ *  Returns (through Callback): OK: -, ERROR: Error Code (Int)
+ */
+- (void)convertArray:(CDVInvokedUrlCommand *)command
+{
+    NSArray *imageFilesPaths = command.arguments[0];
+    NSString *pdfFilePath = command.arguments[1];
+    
+    __weak Image2PDF *weakSelf = self;
+    [self.commandDelegate runInBackground:^{
+        CDVPluginResult *pluginResult;
+        NSMutableArray * images = [[NSMutableArray alloc] init];
+        
+        for (int i = 0; i < [imageFilesPaths count]; i = i + 1) {
+            [images addObject: [Image2PDF loadImageAtPath:imageFilesPaths[i]]];
+        }
+        
+        Image2PDFError errorCode = [Image2PDF saveImagesArray:images toPDFFile:pdfFilePath];
+        
+        if (errorCode == NO_ERROR) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                messageAsInt:errorCode];
+        }
+        
+        [weakSelf.commandDelegate sendPluginResult:pluginResult
+                                        callbackId:command.callbackId];
+    }];
+}
+
+/**
  Loads the given file as an UIImage.
  @param path the file path, either relative to www/ or absolute ("/...")
  @return the UIImage, or nil if file cannot be loaded
@@ -108,6 +144,29 @@
 	}
 	else
 		return PDF_WRITE_ERR;
+}
+
++ (Image2PDFError) saveImagesArray: (NSMutableArray *) images toPDFFile: (NSString *) filePath
+{
+    if (images == nil)
+        return FILE_NOT_FOUND_ERR;
+    
+    filePath = [self _expandTargetPath:filePath];
+    if (UIGraphicsBeginPDFContextToFile(filePath, CGRectZero, nil)) {
+        {
+            for (int i = 0; i < [images count]; i = i + 1) {
+                UIImage *image = [images objectAtIndex:i];
+                UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, image.size.width , image.size.height), nil);
+                [image drawInRect:CGRectMake(0, 0, image.size.width , image.size.height)];
+            }
+            
+        }
+        UIGraphicsEndPDFContext();
+        
+        return [self _checkExistingFile:filePath] ? NO_ERROR : PDF_WRITE_ERR;
+    }
+    else
+        return PDF_WRITE_ERR;
 }
 
 #pragma mark File support
