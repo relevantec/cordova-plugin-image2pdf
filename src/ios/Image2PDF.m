@@ -95,13 +95,8 @@
     __weak Image2PDF *weakSelf = self;
     [self.commandDelegate runInBackground:^{
         CDVPluginResult *pluginResult;
-        NSMutableArray * images = [[NSMutableArray alloc] init];
         
-        for (int i = 0; i < [imageFilesPaths count]; i = i + 1) {
-            [images addObject: [Image2PDF loadImageAtPath:imageFilesPaths[i]]];
-        }
-        
-        Image2PDFError errorCode = [Image2PDF saveImagesArray:images toPDFFile:pdfFilePath];
+        Image2PDFError errorCode = [Image2PDF saveImagesArray:imageFilesPaths toPDFFile:pdfFilePath];
         
         if (errorCode == NO_ERROR) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -146,7 +141,7 @@
 		return PDF_WRITE_ERR;
 }
 
-+ (Image2PDFError) saveImagesArray: (NSMutableArray *) images toPDFFile: (NSString *) filePath
++ (Image2PDFError) saveImagesArray: (NSArray *) images toPDFFile: (NSString *) filePath
 {
     if (images == nil)
         return FILE_NOT_FOUND_ERR;
@@ -154,10 +149,12 @@
     filePath = [self _expandTargetPath:filePath];
     if (UIGraphicsBeginPDFContextToFile(filePath, CGRectZero, nil)) {
         {
+            UIImage *image = nil;
             for (int i = 0; i < [images count]; i = i + 1) {
-                UIImage *image = [images objectAtIndex:i];
+                image = [Image2PDF loadImageAtPath:images[i]];
                 UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, image.size.width , image.size.height), nil);
                 [image drawInRect:CGRectMake(0, 0, image.size.width , image.size.height)];
+                image = nil;
             }
             
         }
