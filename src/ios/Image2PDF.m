@@ -231,7 +231,7 @@
 {
     UIGraphicsBeginImageContextWithOptions(image.size, YES, scale);
     CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextSetInterpolationQuality(context, kCGInterpolationMedium);
+    CGContextSetInterpolationQuality(context, kCGInterpolationLow);
     [image drawInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
     UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
