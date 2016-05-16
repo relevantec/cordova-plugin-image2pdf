@@ -151,11 +151,13 @@
         {
             UIImage *image = nil;
             for (int i = 0; i < [images count]; i = i + 1) {
-                image = [Image2PDF loadImageAtPath:images[i]];
-                image = [Image2PDF imageWithImage:image scaledToScale: 1];
-                UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, image.size.width * 0.5, image.size.height * 0.5), nil);
-                [image drawInRect:CGRectMake(0, 0, image.size.width * 0.5, image.size.height * 0.5)];
-                image = nil;
+                @autoreleasepool {
+                    image = [Image2PDF loadImageAtPath:images[i]];
+                    image = [Image2PDF imageWithImage:image scaledToScale: 1];
+                    UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, image.size.width * 0.5, image.size.height * 0.5), nil);
+                    [image drawInRect:CGRectMake(0, 0, image.size.width * 0.5, image.size.height * 0.5)];
+                    image = nil;
+                }
             }
             
         }
@@ -231,7 +233,7 @@
 {
     UIGraphicsBeginImageContextWithOptions(image.size, YES, scale);
     CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextSetInterpolationQuality(context, kCGInterpolationLow);
+    CGContextSetInterpolationQuality(context, kCGInterpolationMedium);
     [image drawInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
     UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
