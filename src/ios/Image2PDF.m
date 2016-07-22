@@ -91,12 +91,13 @@
 {
     NSArray *imageFilesPaths = command.arguments[0];
     NSString *pdfFilePath = command.arguments[1];
+    NSDictionary* options = [command.arguments objectAtIndex:2];
     
     __weak Image2PDF *weakSelf = self;
     [self.commandDelegate runInBackground:^{
         CDVPluginResult *pluginResult;
         
-        Image2PDFError errorCode = [Image2PDF saveImagesArray:imageFilesPaths toPDFFile:pdfFilePath];
+        Image2PDFError errorCode = [Image2PDF saveImagesArray:imageFilesPaths toPDFFile:pdfFilePath options: options];
         
         if (errorCode == NO_ERROR) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -141,7 +142,7 @@
 		return PDF_WRITE_ERR;
 }
 
-+ (Image2PDFError) saveImagesArray: (NSArray *) images toPDFFile: (NSString *) filePath
++ (Image2PDFError) saveImagesArray: (NSArray *) images toPDFFile: (NSString *) filePath options: (NSDictionary *) options
 {
     if (images == nil)
         return FILE_NOT_FOUND_ERR;
@@ -150,12 +151,47 @@
     if (UIGraphicsBeginPDFContextToFile(filePath, CGRectZero, nil)) {
         {
             UIImage *image = nil;
+            UIImage *imageMargin = nil;
+            NSString* topLeftHeader = [options objectForKey:@"topLeftHeader"];
+            NSString* bottomLeftFooter = [options objectForKey:@"bottomLeftFooter"];
+            NSString* topRightHeader = [options objectForKey:@"topRightHeader"];
+            NSString* bottomRightFooter = [options objectForKey:@"bottomRightFooter"];
+            float topMargin = 0;
+            float bottomMargin = 0;
+            
+            if (topLeftHeader != nil || topRightHeader != nil) {
+                topMargin = 100;
+            }
+            
+            if (bottomLeftFooter != nil || bottomRightFooter != nil) {
+                bottomMargin = 100;
+            }
+            
+            NSDictionary *attributes = @{NSFontAttributeName            : [UIFont systemFontOfSize:20],
+                                         NSForegroundColorAttributeName : [Image2PDF colorFromHexString:@"#575759"],
+                                         NSBackgroundColorAttributeName : [UIColor clearColor]};
+            
             for (int i = 0; i < [images count]; i = i + 1) {
                 @autoreleasepool {
                     image = [Image2PDF loadImageAtPath:images[i]];
                     image = [Image2PDF imageWithImage:image scaledToScale: 1];
-                    UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, image.size.width * 0.5, image.size.height * 0.5), nil);
-                    [image drawInRect:CGRectMake(0, 0, image.size.width * 0.5, image.size.height * 0.5)];
+                    
+                    UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, image.size.width * 0.5, image.size.height * 0.5 + topMargin + bottomMargin), nil);
+                    [image drawInRect:CGRectMake(0, topMargin, image.size.width * 0.5, image.size.height * 0.5)];
+                    
+                    if (bottomLeftFooter != nil) {
+                        imageMargin = [Image2PDF imageFromString:bottomLeftFooter attributes:attributes size:CGSizeMake(image.size.width * 0.5, bottomMargin)];
+                        [imageMargin drawInRect:CGRectMake(0, image.size.height * 0.5, imageMargin.size.width, imageMargin.size.height)];
+                        imageMargin = nil;
+                    }
+                    
+                    if (topLeftHeader != nil) {
+                        imageMargin = [Image2PDF imageFromString:topLeftHeader attributes:attributes size:CGSizeMake(image.size.width * 0.5, topMargin)];
+                        [imageMargin drawInRect:CGRectMake(0, 0, imageMargin.size.width, imageMargin.size.height)];
+                        imageMargin = nil;
+                    }
+                    
+                    
                     image = nil;
                 }
             }
@@ -238,6 +274,25 @@
     UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
     return newImage;
+}
+
++ (UIImage *)imageFromString:(NSString *)string attributes:(NSDictionary *)attributes size:(CGSize)size
+{
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0);
+    [string drawInRect:CGRectMake(0, 0, size.width, size.height) withAttributes:attributes];
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return image;
+}
+
+// Assumes input like "#00FF00" (#RRGGBB).
++ (UIColor *)colorFromHexString:(NSString *)hexString {
+    unsigned rgbValue = 0;
+    NSScanner *scanner = [NSScanner scannerWithString:hexString];
+    [scanner setScanLocation:1]; // bypass '#' character
+    [scanner scanHexInt:&rgbValue];
+    return [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16)/255.0 green:((rgbValue & 0xFF00) >> 8)/255.0 blue:(rgbValue & 0xFF)/255.0 alpha:1.0];
 }
 
 @end

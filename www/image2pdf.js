@@ -57,14 +57,15 @@ module.exports = (function () {
          * @param {String} target PDF file path; if relative then "~/tmp" is prepended
          * @param {Function} success callback is called without parameters
          * @param {Function} onError callback is called with error code (Int)
+         * @param {Object} options Options
          *
          *  Returns (through Callback): OK: -, ERROR: Error Code (Int)
          */
-        convertArray: function (imageFilesPaths, pdfFilePath, success, error) {
+        convertArray: function (imageFilesPaths, pdfFilePath, success, error, options) {
             argscheck.checkArgs('AsFF', 'urlChecker.check', arguments);
             var execSuccess = onSuccess.bind(null, success);
             var execError = onError.bind(null, error);
-            exec(execSuccess, execError, "Image2PDF", "convertArray", [imageFilesPaths, pdfFilePath]);
+            exec(execSuccess, execError, "Image2PDF", "convertArray", [imageFilesPaths, pdfFilePath, options || {}]);
         }
     };
 
