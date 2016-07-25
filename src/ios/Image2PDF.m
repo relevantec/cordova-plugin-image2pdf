@@ -175,18 +175,20 @@
                 @autoreleasepool {
                     image = [Image2PDF loadImageAtPath:images[i]];
                     image = [Image2PDF imageWithImage:image scaledToScale: 1];
+                    int imageSizeWidth = image.size.width * 0.5;
+                    int imageSizeHeight = image.size.height * 0.5;
                     
-                    UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, image.size.width * 0.5, image.size.height * 0.5 + topMargin + bottomMargin), nil);
-                    [image drawInRect:CGRectMake(0, topMargin, image.size.width * 0.5, image.size.height * 0.5)];
+                    UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, imageSizeWidth, imageSizeHeight + topMargin + bottomMargin), nil);
+                    [image drawInRect:CGRectMake(0, topMargin, imageSizeWidth, imageSizeHeight)];
                     
                     if (bottomLeftFooter != nil) {
-                        imageMargin = [Image2PDF imageFromString:bottomLeftFooter attributes:attributes size:CGSizeMake(image.size.width * 0.5, bottomMargin)];
-                        [imageMargin drawInRect:CGRectMake(0, image.size.height * 0.5, imageMargin.size.width, imageMargin.size.height)];
+                        imageMargin = [Image2PDF imageFromString:bottomLeftFooter attributes:attributes size:CGSizeMake(imageSizeWidth, bottomMargin)];
+                        [imageMargin drawInRect:CGRectMake(0, imageSizeHeight + topMargin, imageMargin.size.width, imageMargin.size.height)];
                         imageMargin = nil;
                     }
                     
                     if (topLeftHeader != nil) {
-                        imageMargin = [Image2PDF imageFromString:topLeftHeader attributes:attributes size:CGSizeMake(image.size.width * 0.5, topMargin)];
+                        imageMargin = [Image2PDF imageFromString:topLeftHeader attributes:attributes size:CGSizeMake(imageSizeWidth, topMargin)];
                         [imageMargin drawInRect:CGRectMake(0, 0, imageMargin.size.width, imageMargin.size.height)];
                         imageMargin = nil;
                     }
@@ -279,7 +281,7 @@
 + (UIImage *)imageFromString:(NSString *)string attributes:(NSDictionary *)attributes size:(CGSize)size
 {
     UIGraphicsBeginImageContextWithOptions(size, NO, 0);
-    [string drawInRect:CGRectMake(0, 0, size.width, size.height) withAttributes:attributes];
+    [string drawInRect:CGRectMake(10, 10, size.width, size.height) withAttributes:attributes];
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
     
