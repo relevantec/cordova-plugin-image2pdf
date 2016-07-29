@@ -6,9 +6,9 @@
  to you under the Apache License, Version 2.0 (the
  "License"); you may not use this file except in compliance
  with the License.  You may obtain a copy of the License at
- 
+
  http://www.apache.org/licenses/LICENSE-2.0
- 
+
  Unless required by applicable law or agreed to in writing,
  software distributed under the License is distributed on an
  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -36,7 +36,7 @@ static int currentImageBottomMargin = 0;
 	if (self) {
 		[self pluginInitialize];
 	}
-	
+
 	return self;
 }
 
@@ -71,14 +71,14 @@ static int currentImageBottomMargin = 0;
 		CDVPluginResult *pluginResult;
 		UIImage *image = [Image2PDF loadImageAtPath:imageFilePath];
 		Image2PDFError errorCode = [Image2PDF saveImage:image toPDFFile:pdfFilePath];
-		
+
 		if (errorCode == NO_ERROR) {
 			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
 		} else {
 			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
 												messageAsInt:errorCode];
 		}
-		
+
 		[weakSelf.commandDelegate sendPluginResult:pluginResult
 										callbackId:command.callbackId];
 	}];
@@ -97,20 +97,20 @@ static int currentImageBottomMargin = 0;
     NSArray *imageFilesPaths = command.arguments[0];
     NSString *pdfFilePath = command.arguments[1];
     NSDictionary* options = [command.arguments objectAtIndex:2];
-    
+
     __weak Image2PDF *weakSelf = self;
     [self.commandDelegate runInBackground:^{
         CDVPluginResult *pluginResult;
-        
+
         Image2PDFError errorCode = [Image2PDF saveImagesArray:imageFilesPaths toPDFFile:pdfFilePath options: options];
-        
+
         if (errorCode == NO_ERROR) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         } else {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                 messageAsInt:errorCode];
         }
-        
+
         [weakSelf.commandDelegate sendPluginResult:pluginResult
                                         callbackId:command.callbackId];
     }];
@@ -131,7 +131,7 @@ static int currentImageBottomMargin = 0;
 {
 	if (image == nil)
 		return FILE_NOT_FOUND_ERR;
-	
+
 	filePath = [self _expandTargetPath:filePath];
 	CGRect theBounds = (CGRect){.size=image.size};
 	if (UIGraphicsBeginPDFContextToFile(filePath, theBounds, nil)) {
@@ -140,7 +140,7 @@ static int currentImageBottomMargin = 0;
 			[image drawInRect:theBounds];
 		}
 		UIGraphicsEndPDFContext();
-		
+
 		return [self _checkExistingFile:filePath] ? NO_ERROR : PDF_WRITE_ERR;
 	}
 	else
@@ -158,21 +158,25 @@ static int currentImageBottomMargin = 0;
     NSString *fixedText = text;
     textStyle.lineBreakMode = NSLineBreakByWordWrapping;
     textStyle.alignment = alignement;
+    int textWidth = currentImageWidth - 10;
 
     if (alignement == NSTextAlignmentRight) {
-        fixedText = [[NSArray arrayWithObjects:text, @".", nil] componentsJoinedByString:@" "];
+        fixedText = [[NSArray arrayWithObjects:text, @" .", nil] componentsJoinedByString:@" "];
+    }
+    if (alignement == NSTextAlignmentLeft) {
+        textWidth = currentImageWidth - 100; //leave some space for the date
     }
 
     UIImage *imageLayer = [Image2PDF imageFromString:fixedText
-                                          attributes:@{NSFontAttributeName            : [UIFont systemFontOfSize:20],
+                                          attributes:@{NSFontAttributeName            : [UIFont systemFontOfSize:12],
                                                        NSParagraphStyleAttributeName  : textStyle,
                                                        NSForegroundColorAttributeName : [Image2PDF colorFromHexString:color],
                                                        NSBackgroundColorAttributeName : [UIColor clearColor]}
-                                                size:CGSizeMake(currentImageWidth - 10, currentImageTopMargin)];
+                                                size:CGSizeMake(textWidth, currentImageTopMargin)];
 
     float startY = 0;
-    if ([position isEqual: @"line2"]) { startY = 40; }
-    if ([position isEqual: @"bottom"]) { startY = currentImageHeight + currentImageTopMargin - 10; }
+    if ([position isEqual: @"line2"]) { startY = 24; }
+    if ([position isEqual: @"bottom"]) { startY = currentImageHeight + currentImageTopMargin; }
 
     [imageLayer drawInRect:CGRectMake(0, startY, imageLayer.size.width, imageLayer.size.height)];
     imageLayer = nil;
@@ -182,7 +186,7 @@ static int currentImageBottomMargin = 0;
 {
     if (images == nil)
         return FILE_NOT_FOUND_ERR;
-    
+
     filePath = [self _expandTargetPath:filePath];
     if (UIGraphicsBeginPDFContextToFile(filePath, CGRectZero, nil)) {
         {
@@ -219,8 +223,8 @@ static int currentImageBottomMargin = 0;
 
                     image = [Image2PDF loadImageAtPath:imageUri];
                     image = [Image2PDF imageWithImage:image scaledToScale: 1];
-                    currentImageWidth = image.size.width;
-                    currentImageHeight = image.size.height;
+                    currentImageWidth = image.size.width * 0.5;
+                    currentImageHeight = image.size.height * 0.5;
 
                     UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, currentImageWidth,
                         currentImageHeight + currentImageTopMargin + currentImageBottomMargin), nil);
@@ -238,10 +242,10 @@ static int currentImageBottomMargin = 0;
                     topLine2Tr = nil;
                 }
             }
-            
+
         }
         UIGraphicsEndPDFContext();
-        
+
         return [self _checkExistingFile:filePath] ? NO_ERROR : PDF_WRITE_ERR;
     }
     else
@@ -325,7 +329,7 @@ static int currentImageBottomMargin = 0;
     [string drawInRect:CGRectMake(10, 10, size.width, size.height) withAttributes:attributes];
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
-    
+
     return image;
 }
 
