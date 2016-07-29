@@ -25,6 +25,11 @@
 
 @implementation Image2PDF
 
+static int currentImageWidth = 0;
+static int currentImageHeight = 0;
+static int currentImageTopMargin = 0;
+static int currentImageBottomMargin = 0;
+
 - (instancetype)init
 {
 	self = [super init];
@@ -142,6 +147,37 @@
 		return PDF_WRITE_ERR;
 }
 
++ (void) drowTextLayer: (NSString *) text
+              position: (NSString *) position
+            alignement: (NSTextAlignment) alignement
+                 color: (NSString *) color
+{
+    if (!text) { return; }
+
+    NSMutableParagraphStyle *textStyle = [[NSMutableParagraphStyle defaultParagraphStyle] mutableCopy];
+    NSString *fixedText = text;
+    textStyle.lineBreakMode = NSLineBreakByWordWrapping;
+    textStyle.alignment = alignement;
+
+    if (alignement == NSTextAlignmentRight) {
+        fixedText = [[NSArray arrayWithObjects:text, @".", nil] componentsJoinedByString:@" "];
+    }
+
+    UIImage *imageLayer = [Image2PDF imageFromString:fixedText
+                                          attributes:@{NSFontAttributeName            : [UIFont systemFontOfSize:20],
+                                                       NSParagraphStyleAttributeName  : textStyle,
+                                                       NSForegroundColorAttributeName : [Image2PDF colorFromHexString:color],
+                                                       NSBackgroundColorAttributeName : [UIColor clearColor]}
+                                                size:CGSizeMake(currentImageWidth - 10, currentImageTopMargin)];
+
+    float startY = 0;
+    if ([position isEqual: @"line2"]) { startY = 40; }
+    if ([position isEqual: @"bottom"]) { startY = currentImageHeight + currentImageTopMargin - 10; }
+
+    [imageLayer drawInRect:CGRectMake(0, startY, imageLayer.size.width, imageLayer.size.height)];
+    imageLayer = nil;
+}
+
 + (Image2PDFError) saveImagesArray: (NSArray *) images toPDFFile: (NSString *) filePath options: (NSDictionary *) options
 {
     if (images == nil)
@@ -151,50 +187,55 @@
     if (UIGraphicsBeginPDFContextToFile(filePath, CGRectZero, nil)) {
         {
             UIImage *image = nil;
-            UIImage *imageMargin = nil;
-            NSString* topLeftHeader = [options objectForKey:@"topLeftHeader"];
-            NSString* bottomLeftFooter = [options objectForKey:@"bottomLeftFooter"];
-            NSString* topRightHeader = [options objectForKey:@"topRightHeader"];
-            NSString* bottomRightFooter = [options objectForKey:@"bottomRightFooter"];
-            float topMargin = 0;
-            float bottomMargin = 0;
-            
-            if (topLeftHeader != nil || topRightHeader != nil) {
-                topMargin = 100;
-            }
-            
-            if (bottomLeftFooter != nil || bottomRightFooter != nil) {
-                bottomMargin = 100;
-            }
-            
-            NSDictionary *attributes = @{NSFontAttributeName            : [UIFont systemFontOfSize:20],
-                                         NSForegroundColorAttributeName : [Image2PDF colorFromHexString:@"#575759"],
-                                         NSBackgroundColorAttributeName : [UIColor clearColor]};
-            
+            NSString* imageUri = nil;
+            NSString* imagePage = nil;
+
+            NSString* topLeft = [options objectForKey:@"topLeft"];
+            NSString* topRight = [options objectForKey:@"topRight"];
+            NSString* topLine2 = [options objectForKey:@"topLine2"];
+            NSString* bottomLeft = [options objectForKey:@"bottomLeft"];
+            NSString* bottomRight = [options objectForKey:@"bottomRight"];
+
+            NSString* bottomRightTr = nil;
+            NSString* topLine2Tr = nil;
+
+            currentImageTopMargin = [[options objectForKey:@"topMargin"] floatValue];
+            currentImageBottomMargin = [[options objectForKey:@"bottomMargin"] floatValue];
+
             for (int i = 0; i < [images count]; i = i + 1) {
                 @autoreleasepool {
-                    image = [Image2PDF loadImageAtPath:images[i]];
+                    imageUri = [images[i] objectForKey:@"uri"];
+                    imagePage = [images[i] objectForKey:@"pageNum"];
+
+                    bottomRightTr = [bottomRight stringByReplacingOccurrencesOfString:@"{{item_num}}"
+                        withString:[NSString stringWithFormat:@"%i", i+1]
+                    ];
+                    bottomRightTr = [bottomRightTr stringByReplacingOccurrencesOfString:@"{{item_count}}"
+                        withString:[NSString stringWithFormat:@"%lu", [images count]]
+                    ];
+                    topLine2Tr = [topLine2 stringByReplacingOccurrencesOfString:@"{{page_num}}"
+                        withString:[NSString stringWithFormat:@"%@", imagePage]
+                    ];
+
+                    image = [Image2PDF loadImageAtPath:imageUri];
                     image = [Image2PDF imageWithImage:image scaledToScale: 1];
-                    int imageSizeWidth = image.size.width * 0.5;
-                    int imageSizeHeight = image.size.height * 0.5;
-                    
-                    UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, imageSizeWidth, imageSizeHeight + topMargin + bottomMargin), nil);
-                    [image drawInRect:CGRectMake(0, topMargin, imageSizeWidth, imageSizeHeight)];
-                    
-                    if (bottomLeftFooter != nil) {
-                        imageMargin = [Image2PDF imageFromString:bottomLeftFooter attributes:attributes size:CGSizeMake(imageSizeWidth, bottomMargin)];
-                        [imageMargin drawInRect:CGRectMake(0, imageSizeHeight + topMargin, imageMargin.size.width, imageMargin.size.height)];
-                        imageMargin = nil;
-                    }
-                    
-                    if (topLeftHeader != nil) {
-                        imageMargin = [Image2PDF imageFromString:topLeftHeader attributes:attributes size:CGSizeMake(imageSizeWidth, topMargin)];
-                        [imageMargin drawInRect:CGRectMake(0, 0, imageMargin.size.width, imageMargin.size.height)];
-                        imageMargin = nil;
-                    }
-                    
-                    
+                    currentImageWidth = image.size.width;
+                    currentImageHeight = image.size.height;
+
+                    UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, currentImageWidth,
+                        currentImageHeight + currentImageTopMargin + currentImageBottomMargin), nil);
+                    [image drawInRect:CGRectMake(0, currentImageTopMargin, currentImageWidth, currentImageHeight)];
+
+                    [Image2PDF drowTextLayer: topLeft position: @"top" alignement: NSTextAlignmentLeft color: @"#575759"];
+                    [Image2PDF drowTextLayer: topRight position: @"top" alignement: NSTextAlignmentRight color: @"#575759"];
+                    [Image2PDF drowTextLayer: topLine2Tr position: @"line2" alignement: NSTextAlignmentLeft color: @"#000000"];
+                    [Image2PDF drowTextLayer: bottomLeft position: @"bottom" alignement: NSTextAlignmentLeft color: @"#575759"];
+                    [Image2PDF drowTextLayer: bottomRightTr position: @"bottom" alignement: NSTextAlignmentRight color: @"#575759"];
+
                     image = nil;
+                    imageUri = nil;
+                    bottomRightTr = nil;
+                    topLine2Tr = nil;
                 }
             }
             

@@ -23,7 +23,7 @@ The plugin is exposed via the `cordova.plugins.image2pdf` object, which converts
 
 ## Installation
 
-    cordova plugin add https://github.com/mbackschat/cordova-plugin-image2pdf.git
+    cordova plugin add https://github.com/relevantec/cordova-plugin-image2pdf.git
 
 ## API
 
@@ -57,5 +57,3 @@ cordova.plugins.image2pdf.convert("test.jpg", "test.pdf",
 - iOS
     - Supported image file formats: .png, .tiff/.tif, .jpeg/.jpg, .gif, .bmp/.BMPf, .ico, .cur, .xbm  
 See also [Apple documentation](https://developer.apple.com/library/ios/documentation/2DDrawing/Conceptual/DrawingPrintingiOS/LoadingImages/LoadingImages.html#//apple_ref/doc/uid/TP40010156-CH17-SW7).
-
-
