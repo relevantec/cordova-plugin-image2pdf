@@ -154,32 +154,34 @@ static int currentImageBottomMargin = 0;
 {
     if (!text) { return; }
 
-    NSMutableParagraphStyle *textStyle = [[NSMutableParagraphStyle defaultParagraphStyle] mutableCopy];
-    NSString *fixedText = text;
-    textStyle.lineBreakMode = NSLineBreakByWordWrapping;
-    textStyle.alignment = alignement;
-    int textWidth = currentImageWidth - 10;
+    @autoreleasepool {
+        NSMutableParagraphStyle *textStyle = [[NSMutableParagraphStyle defaultParagraphStyle] mutableCopy];
+        NSString *fixedText = text;
+        textStyle.lineBreakMode = NSLineBreakByWordWrapping;
+        textStyle.alignment = alignement;
+        int textWidth = currentImageWidth - 10;
 
-    if (alignement == NSTextAlignmentRight) {
-        fixedText = [[NSArray arrayWithObjects:text, @" .", nil] componentsJoinedByString:@" "];
+        if (alignement == NSTextAlignmentRight) {
+            fixedText = [[NSArray arrayWithObjects:text, @" .", nil] componentsJoinedByString:@" "];
+        }
+        if (alignement == NSTextAlignmentLeft) {
+            textWidth = currentImageWidth - 100; //leave some space for the date
+        }
+
+        UIImage *imageLayer = [Image2PDF imageFromString:fixedText
+                                              attributes:@{NSFontAttributeName            : [UIFont systemFontOfSize:12],
+                                                           NSParagraphStyleAttributeName  : textStyle,
+                                                           NSForegroundColorAttributeName : [Image2PDF colorFromHexString:color],
+                                                           NSBackgroundColorAttributeName : [UIColor clearColor]}
+                                                    size:CGSizeMake(textWidth, currentImageTopMargin)];
+
+        float startY = 0;
+        if ([position isEqual: @"line2"]) { startY = 24; }
+        if ([position isEqual: @"bottom"]) { startY = currentImageHeight + currentImageTopMargin; }
+
+        [imageLayer drawInRect:CGRectMake(0, startY, imageLayer.size.width, imageLayer.size.height)];
+        imageLayer = nil;
     }
-    if (alignement == NSTextAlignmentLeft) {
-        textWidth = currentImageWidth - 100; //leave some space for the date
-    }
-
-    UIImage *imageLayer = [Image2PDF imageFromString:fixedText
-                                          attributes:@{NSFontAttributeName            : [UIFont systemFontOfSize:12],
-                                                       NSParagraphStyleAttributeName  : textStyle,
-                                                       NSForegroundColorAttributeName : [Image2PDF colorFromHexString:color],
-                                                       NSBackgroundColorAttributeName : [UIColor clearColor]}
-                                                size:CGSizeMake(textWidth, currentImageTopMargin)];
-
-    float startY = 0;
-    if ([position isEqual: @"line2"]) { startY = 24; }
-    if ([position isEqual: @"bottom"]) { startY = currentImageHeight + currentImageTopMargin; }
-
-    [imageLayer drawInRect:CGRectMake(0, startY, imageLayer.size.width, imageLayer.size.height)];
-    imageLayer = nil;
 }
 
 + (Image2PDFError) saveImagesArray: (NSArray *) images toPDFFile: (NSString *) filePath options: (NSDictionary *) options
@@ -325,21 +327,25 @@ static int currentImageBottomMargin = 0;
 
 + (UIImage *)imageFromString:(NSString *)string attributes:(NSDictionary *)attributes size:(CGSize)size
 {
-    UIGraphicsBeginImageContextWithOptions(size, NO, 0);
-    [string drawInRect:CGRectMake(10, 10, size.width, size.height) withAttributes:attributes];
-    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
+    @autoreleasepool {
+        UIGraphicsBeginImageContextWithOptions(size, NO, 0);
+        [string drawInRect:CGRectMake(10, 10, size.width, size.height) withAttributes:attributes];
+        UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
 
-    return image;
+        return image;
+    }
 }
 
 // Assumes input like "#00FF00" (#RRGGBB).
 + (UIColor *)colorFromHexString:(NSString *)hexString {
-    unsigned rgbValue = 0;
-    NSScanner *scanner = [NSScanner scannerWithString:hexString];
-    [scanner setScanLocation:1]; // bypass '#' character
-    [scanner scanHexInt:&rgbValue];
-    return [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16)/255.0 green:((rgbValue & 0xFF00) >> 8)/255.0 blue:(rgbValue & 0xFF)/255.0 alpha:1.0];
+    @autoreleasepool {
+        unsigned rgbValue = 0;
+        NSScanner *scanner = [NSScanner scannerWithString:hexString];
+        [scanner setScanLocation:1]; // bypass '#' character
+        [scanner scanHexInt:&rgbValue];
+        return [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16)/255.0 green:((rgbValue & 0xFF00) >> 8)/255.0 blue:(rgbValue & 0xFF)/255.0 alpha:1.0];
+    }
 }
 
 @end
