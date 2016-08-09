@@ -66,22 +66,24 @@ static int currentImageBottomMargin = 0;
 	NSString *imageFilePath = command.arguments[0];
 	NSString *pdfFilePath = command.arguments[1];
 
-	__weak Image2PDF *weakSelf = self;
-	[self.commandDelegate runInBackground:^{
-		CDVPluginResult *pluginResult;
-		UIImage *image = [Image2PDF loadImageAtPath:imageFilePath];
-		Image2PDFError errorCode = [Image2PDF saveImage:image toPDFFile:pdfFilePath];
+	@autoreleasepool {
+		__weak Image2PDF *weakSelf = self;
+		[self.commandDelegate runInBackground:^{
+			CDVPluginResult *pluginResult;
+			UIImage *image = [Image2PDF loadImageAtPath:imageFilePath];
+			Image2PDFError errorCode = [Image2PDF saveImage:image toPDFFile:pdfFilePath];
 
-		if (errorCode == NO_ERROR) {
-			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-		} else {
-			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-												messageAsInt:errorCode];
-		}
+			if (errorCode == NO_ERROR) {
+				pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+			} else {
+				pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsInt:errorCode];
+			}
 
-		[weakSelf.commandDelegate sendPluginResult:pluginResult
-										callbackId:command.callbackId];
-	}];
+			[weakSelf.commandDelegate sendPluginResult:pluginResult
+											callbackId:command.callbackId];
+		}];
+	}
 }
 
 /**
@@ -98,22 +100,24 @@ static int currentImageBottomMargin = 0;
     NSString *pdfFilePath = command.arguments[1];
     NSDictionary* options = [command.arguments objectAtIndex:2];
 
-    __weak Image2PDF *weakSelf = self;
-    [self.commandDelegate runInBackground:^{
-        CDVPluginResult *pluginResult;
+	@autoreleasepool {
+	    __weak Image2PDF *weakSelf = self;
+	    [self.commandDelegate runInBackground:^{
+	        CDVPluginResult *pluginResult;
 
-        Image2PDFError errorCode = [Image2PDF saveImagesArray:imageFilesPaths toPDFFile:pdfFilePath options: options];
+	        Image2PDFError errorCode = [Image2PDF saveImagesArray:imageFilesPaths toPDFFile:pdfFilePath options: options];
 
-        if (errorCode == NO_ERROR) {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-        } else {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                messageAsInt:errorCode];
-        }
+	        if (errorCode == NO_ERROR) {
+	            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+	        } else {
+	            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+	                                                messageAsInt:errorCode];
+	        }
 
-        [weakSelf.commandDelegate sendPluginResult:pluginResult
-                                        callbackId:command.callbackId];
-    }];
+	        [weakSelf.commandDelegate sendPluginResult:pluginResult
+	                                        callbackId:command.callbackId];
+	    }];
+	}
 }
 
 /**
