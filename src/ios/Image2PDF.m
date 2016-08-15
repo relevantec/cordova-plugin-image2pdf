@@ -228,9 +228,9 @@ static int currentImageBottomMargin = 0;
                     ];
 
                     image = [Image2PDF loadImageAtPath:imageUri];
-                    image = [Image2PDF imageWithImage:image scaledToScale: 1];
-                    currentImageWidth = image.size.width * 0.5;
-                    currentImageHeight = image.size.height * 0.5;
+                    image = [Image2PDF imageWithImage:image scaledToScale: 0.8];
+                    currentImageWidth = image.size.width * 0.625;
+                    currentImageHeight = image.size.height * 0.625;
 
                     UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, currentImageWidth,
                         currentImageHeight + currentImageTopMargin + currentImageBottomMargin), nil);
