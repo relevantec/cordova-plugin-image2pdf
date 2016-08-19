@@ -205,9 +205,22 @@ static int currentImageBottomMargin = 0;
             NSString* topLine2 = [options objectForKey:@"topLine2"];
             NSString* bottomLeft = [options objectForKey:@"bottomLeft"];
             NSString* bottomRight = [options objectForKey:@"bottomRight"];
+            NSString* exportQuality = [options objectForKey:@"exportQuality"];
 
             NSString* bottomRightTr = nil;
             NSString* topLine2Tr = nil;
+
+			//low quality
+			float imageScale = 0.625;
+			float imageNormalizedScale = 0.8;
+			if (exportQuality == @"medium") {
+				imageScale = 0.8;
+				imageNormalizedScale = 0.625;
+			}
+			else if (exportQuality == @"high") {
+				imageScale = 1;
+				imageNormalizedScale = 0.5;
+			}
 
             currentImageTopMargin = [[options objectForKey:@"topMargin"] floatValue];
             currentImageBottomMargin = [[options objectForKey:@"bottomMargin"] floatValue];
@@ -228,9 +241,9 @@ static int currentImageBottomMargin = 0;
                     ];
 
                     image = [Image2PDF loadImageAtPath:imageUri];
-                    image = [Image2PDF imageWithImage:image scaledToScale: 0.8];
-                    currentImageWidth = image.size.width * 0.625;
-                    currentImageHeight = image.size.height * 0.625;
+                    image = [Image2PDF imageWithImage:image scaledToScale: imageScale];
+                    currentImageWidth = image.size.width * imageNormalizedScale;
+                    currentImageHeight = image.size.height * imageNormalizedScale;
 
                     UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, currentImageWidth,
                         currentImageHeight + currentImageTopMargin + currentImageBottomMargin), nil);
