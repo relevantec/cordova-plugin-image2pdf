@@ -212,14 +212,11 @@ static int currentImageBottomMargin = 0;
 
 			//low quality
 			float imageScale = 0.625;
-			float imageNormalizedScale = 0.8;
-			if (exportQuality == @"medium") {
+			if ([exportQuality  isEqual: @"medium"]) {
 				imageScale = 0.8;
-				imageNormalizedScale = 0.625;
 			}
-			else if (exportQuality == @"high") {
+			else if ([exportQuality  isEqual: @"high"]) {
 				imageScale = 1;
-				imageNormalizedScale = 0.5;
 			}
 
             currentImageTopMargin = [[options objectForKey:@"topMargin"] floatValue];
@@ -242,8 +239,8 @@ static int currentImageBottomMargin = 0;
 
                     image = [Image2PDF loadImageAtPath:imageUri];
                     image = [Image2PDF imageWithImage:image scaledToScale: imageScale];
-                    currentImageWidth = image.size.width * imageNormalizedScale;
-                    currentImageHeight = image.size.height * imageNormalizedScale;
+                    currentImageWidth = image.size.width * 0.5;
+                    currentImageHeight = image.size.height * 0.5;
 
                     UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, currentImageWidth,
                         currentImageHeight + currentImageTopMargin + currentImageBottomMargin), nil);
