@@ -66,22 +66,24 @@ static int currentImageBottomMargin = 0;
 	NSString *imageFilePath = command.arguments[0];
 	NSString *pdfFilePath = command.arguments[1];
 
-	__weak Image2PDF *weakSelf = self;
-	[self.commandDelegate runInBackground:^{
-		CDVPluginResult *pluginResult;
-		UIImage *image = [Image2PDF loadImageAtPath:imageFilePath];
-		Image2PDFError errorCode = [Image2PDF saveImage:image toPDFFile:pdfFilePath];
+	@autoreleasepool {
+		__weak Image2PDF *weakSelf = self;
+		[self.commandDelegate runInBackground:^{
+			CDVPluginResult *pluginResult;
+			UIImage *image = [Image2PDF loadImageAtPath:imageFilePath];
+			Image2PDFError errorCode = [Image2PDF saveImage:image toPDFFile:pdfFilePath];
 
-		if (errorCode == NO_ERROR) {
-			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-		} else {
-			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-												messageAsInt:errorCode];
-		}
+			if (errorCode == NO_ERROR) {
+				pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+			} else {
+				pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+													messageAsInt:errorCode];
+			}
 
-		[weakSelf.commandDelegate sendPluginResult:pluginResult
-										callbackId:command.callbackId];
-	}];
+			[weakSelf.commandDelegate sendPluginResult:pluginResult
+											callbackId:command.callbackId];
+		}];
+	}
 }
 
 /**
@@ -98,22 +100,24 @@ static int currentImageBottomMargin = 0;
     NSString *pdfFilePath = command.arguments[1];
     NSDictionary* options = [command.arguments objectAtIndex:2];
 
-    __weak Image2PDF *weakSelf = self;
-    [self.commandDelegate runInBackground:^{
-        CDVPluginResult *pluginResult;
+	@autoreleasepool {
+	    __weak Image2PDF *weakSelf = self;
+	    [self.commandDelegate runInBackground:^{
+	        CDVPluginResult *pluginResult;
 
-        Image2PDFError errorCode = [Image2PDF saveImagesArray:imageFilesPaths toPDFFile:pdfFilePath options: options];
+	        Image2PDFError errorCode = [Image2PDF saveImagesArray:imageFilesPaths toPDFFile:pdfFilePath options: options];
 
-        if (errorCode == NO_ERROR) {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-        } else {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                messageAsInt:errorCode];
-        }
+	        if (errorCode == NO_ERROR) {
+	            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+	        } else {
+	            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+	                                                messageAsInt:errorCode];
+	        }
 
-        [weakSelf.commandDelegate sendPluginResult:pluginResult
-                                        callbackId:command.callbackId];
-    }];
+	        [weakSelf.commandDelegate sendPluginResult:pluginResult
+	                                        callbackId:command.callbackId];
+	    }];
+	}
 }
 
 /**
@@ -176,10 +180,12 @@ static int currentImageBottomMargin = 0;
                                                     size:CGSizeMake(textWidth, currentImageTopMargin)];
 
         float startY = 0;
-        if ([position isEqual: @"line2"]) { startY = 24; }
+        float startX = 0;
+        if ([position isEqual: @"top"] && alignement == NSTextAlignmentLeft) { startX = 41;}
+        if ([position isEqual: @"line2"]) { startY = 24; startX = 41;}
         if ([position isEqual: @"bottom"]) { startY = currentImageHeight + currentImageTopMargin; }
 
-        [imageLayer drawInRect:CGRectMake(0, startY, imageLayer.size.width, imageLayer.size.height)];
+        [imageLayer drawInRect:CGRectMake(startX, startY, imageLayer.size.width, imageLayer.size.height)];
         imageLayer = nil;
     }
 }
@@ -193,6 +199,8 @@ static int currentImageBottomMargin = 0;
     if (UIGraphicsBeginPDFContextToFile(filePath, CGRectZero, nil)) {
         {
             UIImage *image = nil;
+            UIImage *logoImage = [Image2PDF loadImageAtPath:[[[NSBundle mainBundle] resourcePath]
+                                                             stringByAppendingPathComponent:[options objectForKey:@"logo"]]];
             NSString* imageUri = nil;
             NSString* imagePage = nil;
 
@@ -201,9 +209,19 @@ static int currentImageBottomMargin = 0;
             NSString* topLine2 = [options objectForKey:@"topLine2"];
             NSString* bottomLeft = [options objectForKey:@"bottomLeft"];
             NSString* bottomRight = [options objectForKey:@"bottomRight"];
+            NSString* exportQuality = [options objectForKey:@"exportQuality"];
 
             NSString* bottomRightTr = nil;
             NSString* topLine2Tr = nil;
+
+			//low quality
+			float imageScale = 0.625;
+			if ([exportQuality  isEqual: @"medium"]) {
+				imageScale = 0.8;
+			}
+			else if ([exportQuality  isEqual: @"high"]) {
+				imageScale = 1;
+			}
 
             currentImageTopMargin = [[options objectForKey:@"topMargin"] floatValue];
             currentImageBottomMargin = [[options objectForKey:@"bottomMargin"] floatValue];
@@ -218,13 +236,13 @@ static int currentImageBottomMargin = 0;
                     ];
                     bottomRightTr = [bottomRightTr stringByReplacingOccurrencesOfString:@"{{item_count}}"
                         withString:[NSString stringWithFormat:@"%lu", [images count]]
-                    ];
+                                     ];
                     topLine2Tr = [topLine2 stringByReplacingOccurrencesOfString:@"{{page_num}}"
                         withString:[NSString stringWithFormat:@"%@", imagePage]
                     ];
 
                     image = [Image2PDF loadImageAtPath:imageUri];
-                    image = [Image2PDF imageWithImage:image scaledToScale: 1];
+                    image = [Image2PDF imageWithImage:image scaledToScale: imageScale];
                     currentImageWidth = image.size.width * 0.5;
                     currentImageHeight = image.size.height * 0.5;
 
@@ -237,13 +255,16 @@ static int currentImageBottomMargin = 0;
                     [Image2PDF drowTextLayer: topLine2Tr position: @"line2" alignement: NSTextAlignmentLeft color: @"#000000"];
                     [Image2PDF drowTextLayer: bottomLeft position: @"bottom" alignement: NSTextAlignmentLeft color: @"#575759"];
                     [Image2PDF drowTextLayer: bottomRightTr position: @"bottom" alignement: NSTextAlignmentRight color: @"#575759"];
-
+                    [logoImage drawInRect:CGRectMake(0, 0, 40, 47)];
+                    
                     image = nil;
                     imageUri = nil;
                     bottomRightTr = nil;
                     topLine2Tr = nil;
                 }
             }
+            logoImage = nil;
+            
 
         }
         UIGraphicsEndPDFContext();
